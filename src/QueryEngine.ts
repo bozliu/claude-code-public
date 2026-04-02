@@ -71,6 +71,10 @@ import {
   type ProcessUserInputContext,
   processUserInput,
 } from './utils/processUserInput/processUserInput.js'
+import {
+  summarizeMessagesForTrace,
+  traceAgentLoop,
+} from './utils/agentLoopTrace.js'
 import { fetchSystemPromptParts } from './utils/queryContext.js'
 import { setCwd } from './utils/Shell.js'
 import {
@@ -430,6 +434,15 @@ export class QueryEngine {
       querySource: 'sdk',
     })
 
+    traceAgentLoop('post_process_user_input', {
+      shouldQuery,
+      allowedTools: allowedTools ?? [],
+      modelOverride: modelFromUserInput ?? null,
+      resultTextPreview: resultText ? resultText.slice(0, 120) : null,
+      messageCount: messagesFromUserInput.length,
+      messages: summarizeMessagesForTrace(messagesFromUserInput as Message[], 6),
+    })
+
     // Push new messages, including user input and any attachments
     this.mutableMessages.push(...messagesFromUserInput)
 
@@ -675,6 +688,19 @@ export class QueryEngine {
     const initialStructuredOutputCalls = jsonSchema
       ? countToolCalls(this.mutableMessages, SYNTHETIC_OUTPUT_TOOL_NAME)
       : 0
+
+    traceAgentLoop('before_query_loop', {
+      model: mainLoopModel,
+      messageCount: messages.length,
+      messageTail: summarizeMessagesForTrace(messages, 6),
+      systemPromptSections: systemPrompt.map((section, index) => ({
+        index,
+        length: section.length,
+        preview: section.slice(0, 96),
+      })),
+      userContextKeys: Object.keys(userContext),
+      systemContextKeys: Object.keys(systemContext),
+    })
 
     for await (const message of query({
       messages,

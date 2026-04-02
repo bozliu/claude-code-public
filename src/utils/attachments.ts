@@ -229,7 +229,11 @@ import { getLocalISODate } from '../constants/common.js'
 import { getPDFPageCount } from './pdf.js'
 import { PDF_AT_MENTION_INLINE_THRESHOLD } from '../constants/apiLimits.js'
 import { isAgentSwarmsEnabled } from './agentSwarmsEnabled.js'
-import { findRelevantMemories } from '../memdir/findRelevantMemories.js'
+import {
+  findRelevantMemories,
+  type RelevantMemory,
+  type RelevantMemorySearchResult,
+} from '../memdir/findRelevantMemories.js'
 import { memoryAge, memoryFreshnessText } from '../memdir/memoryAge.js'
 import { getAutoMemPath, isAutoMemoryEnabled } from '../memdir/paths.js'
 import { getAgentMemoryDir } from '../tools/AgentTool/agentMemory.js'
@@ -2221,18 +2225,18 @@ async function getRelevantMemoryAttachments(
         signal,
         recentTools,
         alreadySurfaced,
-      ).catch(() => []),
+      ).catch((): RelevantMemorySearchResult => ({
+        selected: [],
+        localTopCandidates: [],
+      })),
     ),
   )
-  // alreadySurfaced is filtered inside the selector so Sonnet spends its
-  // 5-slot budget on fresh candidates; readFileState catches files the
-  // model read via FileReadTool. The redundant alreadySurfaced check here
-  // is a belt-and-suspenders guard (multi-dir results may re-introduce a
-  // path the selector filtered in a different dir).
-  const selected = allResults
-    .flat()
-    .filter(m => !readFileState.has(m.path) && !alreadySurfaced.has(m.path))
-    .slice(0, 5)
+  const selected = selectMemoriesForSurfacing(
+    allResults.flatMap(result => result.selected),
+    allResults.flatMap(result => result.localTopCandidates),
+    readFileState,
+    alreadySurfaced,
+  )
 
   const memories = await readMemoriesForSurfacing(selected, signal)
 
@@ -2240,6 +2244,129 @@ async function getRelevantMemoryAttachments(
     return []
   }
   return [{ type: 'relevant_memories' as const, memories }]
+}
+
+function sortRelevantMemories(memories: readonly RelevantMemory[]): RelevantMemory[] {
+  return [...memories].sort((lhs, rhs) => {
+    if (lhs.sideQueryRank !== undefined || rhs.sideQueryRank !== undefined) {
+      const lhsRank = lhs.sideQueryRank ?? Number.MAX_SAFE_INTEGER
+      const rhsRank = rhs.sideQueryRank ?? Number.MAX_SAFE_INTEGER
+      if (lhsRank !== rhsRank) {
+        return lhsRank - rhsRank
+      }
+    }
+    if (rhs.localScore !== lhs.localScore) {
+      return rhs.localScore - lhs.localScore
+    }
+    if (lhs.localRank !== rhs.localRank) {
+      return lhs.localRank - rhs.localRank
+    }
+    return lhs.path.localeCompare(rhs.path)
+  })
+}
+
+const MIN_LOCAL_SURFACING_SCORE = 4
+
+function dedupeRelevantMemories(
+  memories: readonly RelevantMemory[],
+): RelevantMemory[] {
+  const deduped: RelevantMemory[] = []
+  const seen = new Set<string>()
+  for (const memory of sortRelevantMemories(memories)) {
+    if (seen.has(memory.path)) {
+      continue
+    }
+    seen.add(memory.path)
+    deduped.push(memory)
+  }
+  return deduped
+}
+
+function canAddRelevantMemory(
+  current: readonly RelevantMemory[],
+  candidate: RelevantMemory,
+): boolean {
+  if (
+    candidate.type === 'reference' &&
+    current.filter(memory => memory.type === 'reference').length >= 2
+  ) {
+    return false
+  }
+  if (
+    candidate.type === 'feedback' &&
+    current.filter(memory => memory.type === 'feedback').length >= 2
+  ) {
+    return false
+  }
+  return true
+}
+
+export function selectMemoriesForSurfacing(
+  selectedCandidates: readonly RelevantMemory[],
+  localTopCandidates: readonly RelevantMemory[],
+  readFileState: Pick<FileStateCache, 'has'>,
+  alreadySurfaced: ReadonlySet<string>,
+): RelevantMemory[] {
+  const filterVisible = (memory: RelevantMemory) =>
+    !readFileState.has(memory.path) && !alreadySurfaced.has(memory.path)
+
+  const selected = dedupeRelevantMemories(selectedCandidates).filter(filterVisible)
+  const localTop = dedupeRelevantMemories(localTopCandidates).filter(filterVisible)
+
+  const finalSelection: RelevantMemory[] = []
+  const seen = new Set<string>()
+
+  const tryAdd = (candidate: RelevantMemory): boolean => {
+    if (seen.has(candidate.path) || !canAddRelevantMemory(finalSelection, candidate)) {
+      return false
+    }
+    finalSelection.push(candidate)
+    seen.add(candidate.path)
+    return true
+  }
+
+  for (const candidate of selected) {
+    if (tryAdd(candidate) && finalSelection.length >= 5) {
+      break
+    }
+  }
+
+  if (finalSelection.length < 5) {
+    for (const candidate of localTop) {
+      if (
+        candidate.localScore >= MIN_LOCAL_SURFACING_SCORE &&
+        tryAdd(candidate) &&
+        finalSelection.length >= 5
+      ) {
+        break
+      }
+    }
+  }
+
+  const hasFeedback = finalSelection.some(memory => memory.type === 'feedback')
+  if (!hasFeedback) {
+    const fallbackFeedback = localTop.find(
+      memory =>
+        memory.type === 'feedback' &&
+        !seen.has(memory.path) &&
+        memory.localScore >= MIN_LOCAL_SURFACING_SCORE &&
+        memory.localScore >= (finalSelection.at(-1)?.localScore ?? 0),
+    )
+
+    if (fallbackFeedback) {
+      if (finalSelection.length < 5) {
+        finalSelection.push(fallbackFeedback)
+      } else {
+        const removed = finalSelection.pop()
+        if (removed) {
+          seen.delete(removed.path)
+        }
+        finalSelection.push(fallbackFeedback)
+      }
+    }
+  }
+
+  return finalSelection.slice(0, 5)
 }
 
 /**

@@ -904,7 +904,8 @@ export const connectToServer = memoize(
         )
         logMCPDebug(name, `claude.ai proxy transport created successfully`)
       } else if (
-        ((serverRef as ScopedMcpServerConfig).type === 'stdio' || !(serverRef as ScopedMcpServerConfig).type) &&
+        ((serverRef as ScopedMcpServerConfig).type === 'stdio' ||
+          !(serverRef as ScopedMcpServerConfig).type) &&
         isClaudeInChromeMCPServer(name)
       ) {
         // Run the Chrome MCP server in-process to avoid spawning a ~325 MB subprocess
@@ -917,7 +918,9 @@ export const connectToServer = memoize(
         const { createLinkedTransportPair } = await import(
           './InProcessTransport.js'
         )
-        const context = createChromeContext((serverRef as McpStdioServerConfig).env)
+        const context = createChromeContext(
+          (serverRef as McpStdioServerConfig).env,
+        )
         inProcessServer = createClaudeForChromeMcpServer(context)
         const [clientTransport, serverTransport] = createLinkedTransportPair()
         await inProcessServer.connect(serverTransport)
@@ -925,7 +928,8 @@ export const connectToServer = memoize(
         logMCPDebug(name, `In-process Chrome MCP server started`)
       } else if (
         feature('CHICAGO_MCP') &&
-        ((serverRef as ScopedMcpServerConfig).type === 'stdio' || !(serverRef as ScopedMcpServerConfig).type) &&
+        ((serverRef as ScopedMcpServerConfig).type === 'stdio' ||
+          !(serverRef as ScopedMcpServerConfig).type) &&
         isComputerUseMCPServer!(name)
       ) {
         // Run the Computer Use MCP server in-process — same rationale as
@@ -942,7 +946,10 @@ export const connectToServer = memoize(
         await inProcessServer.connect(serverTransport)
         transport = clientTransport
         logMCPDebug(name, `In-process Computer Use MCP server started`)
-      } else if ((serverRef as ScopedMcpServerConfig).type === 'stdio' || !(serverRef as ScopedMcpServerConfig).type) {
+      } else if (
+        (serverRef as ScopedMcpServerConfig).type === 'stdio' ||
+        !(serverRef as ScopedMcpServerConfig).type
+      ) {
         const stdioRef = serverRef as McpStdioServerConfig
         const finalCommand =
           process.env.CLAUDE_CODE_SHELL_PREFIX || stdioRef.command
@@ -959,7 +966,9 @@ export const connectToServer = memoize(
           stderr: 'pipe', // prevents error output from the MCP server from printing to the UI
         })
       } else {
-        throw new Error(`Unsupported server type: ${(serverRef as ScopedMcpServerConfig).type}`)
+        throw new Error(
+          `Unsupported server type: ${(serverRef as ScopedMcpServerConfig).type}`,
+        )
       }
 
       // Set up stderr logging for stdio transport before connecting in case there are any stderr
@@ -1445,90 +1454,65 @@ export const connectToServer = memoize(
               }
 
               // Wait for graceful shutdown with rapid escalation (total 500ms to keep CLI responsive)
-              await new Promise<void>(async resolve => {
-                let resolved = false
+              await new Promise<void>(resolve => {
+                void (async () => {
+                  let resolved = false
 
-                // Set up a timer to check if process still exists
-                const checkInterval = setInterval(() => {
-                  try {
-                    // process.kill(pid, 0) checks if process exists without killing it
-                    process.kill(childPid, 0)
-                  } catch {
-                    // Process no longer exists
-                    if (!resolved) {
-                      resolved = true
-                      clearInterval(checkInterval)
-                      clearTimeout(failsafeTimeout)
-                      logMCPDebug(name, 'MCP server process exited cleanly')
-                      resolve()
-                    }
-                  }
-                }, 50)
-
-                // Absolute failsafe: clear interval after 600ms no matter what
-                const failsafeTimeout = setTimeout(() => {
-                  if (!resolved) {
-                    resolved = true
-                    clearInterval(checkInterval)
-                    logMCPDebug(
-                      name,
-                      'Cleanup timeout reached, stopping process monitoring',
-                    )
-                    resolve()
-                  }
-                }, 600)
-
-                try {
-                  // Wait 100ms for SIGINT to work (usually much faster)
-                  await sleep(100)
-
-                  if (!resolved) {
-                    // Check if process still exists
+                  // Set up a timer to check if process still exists
+                  const checkInterval = setInterval(() => {
                     try {
+                      // process.kill(pid, 0) checks if process exists without killing it
                       process.kill(childPid, 0)
-                      // Process still exists, SIGINT failed, try SIGTERM
-                      logMCPDebug(
-                        name,
-                        'SIGINT failed, sending SIGTERM to MCP server process',
-                      )
-                      try {
-                        process.kill(childPid, 'SIGTERM')
-                      } catch (termError) {
-                        logMCPDebug(name, `Error sending SIGTERM: ${termError}`)
+                    } catch {
+                      // Process no longer exists
+                      if (!resolved) {
                         resolved = true
                         clearInterval(checkInterval)
                         clearTimeout(failsafeTimeout)
+                        logMCPDebug(name, 'MCP server process exited cleanly')
                         resolve()
-                        return
                       }
-                    } catch {
-                      // Process already exited
+                    }
+                  }, 50)
+
+                  // Absolute failsafe: clear interval after 600ms no matter what
+                  const failsafeTimeout = setTimeout(() => {
+                    if (!resolved) {
                       resolved = true
                       clearInterval(checkInterval)
-                      clearTimeout(failsafeTimeout)
+                      logMCPDebug(
+                        name,
+                        'Cleanup timeout reached, stopping process monitoring',
+                      )
                       resolve()
-                      return
                     }
+                  }, 600)
 
-                    // Wait 400ms for SIGTERM to work (slower than SIGINT, often used for cleanup)
-                    await sleep(400)
+                  try {
+                    // Wait 100ms for SIGINT to work (usually much faster)
+                    await sleep(100)
 
                     if (!resolved) {
                       // Check if process still exists
                       try {
                         process.kill(childPid, 0)
-                        // Process still exists, SIGTERM failed, force kill with SIGKILL
+                        // Process still exists, SIGINT failed, try SIGTERM
                         logMCPDebug(
                           name,
-                          'SIGTERM failed, sending SIGKILL to MCP server process',
+                          'SIGINT failed, sending SIGTERM to MCP server process',
                         )
                         try {
-                          process.kill(childPid, 'SIGKILL')
-                        } catch (killError) {
+                          process.kill(childPid, 'SIGTERM')
+                        } catch (termError) {
                           logMCPDebug(
                             name,
-                            `Error sending SIGKILL: ${killError}`,
+                            `Error sending SIGTERM: ${termError}`,
                           )
+                          resolved = true
+                          clearInterval(checkInterval)
+                          clearTimeout(failsafeTimeout)
+                          resolve()
+                          return
                         }
                       } catch {
                         // Process already exited
@@ -1536,26 +1520,56 @@ export const connectToServer = memoize(
                         clearInterval(checkInterval)
                         clearTimeout(failsafeTimeout)
                         resolve()
+                        return
+                      }
+
+                      // Wait 400ms for SIGTERM to work (slower than SIGINT, often used for cleanup)
+                      await sleep(400)
+
+                      if (!resolved) {
+                        // Check if process still exists
+                        try {
+                          process.kill(childPid, 0)
+                          // Process still exists, SIGTERM failed, force kill with SIGKILL
+                          logMCPDebug(
+                            name,
+                            'SIGTERM failed, sending SIGKILL to MCP server process',
+                          )
+                          try {
+                            process.kill(childPid, 'SIGKILL')
+                          } catch (killError) {
+                            logMCPDebug(
+                              name,
+                              `Error sending SIGKILL: ${killError}`,
+                            )
+                          }
+                        } catch {
+                          // Process already exited
+                          resolved = true
+                          clearInterval(checkInterval)
+                          clearTimeout(failsafeTimeout)
+                          resolve()
+                        }
                       }
                     }
-                  }
 
-                  // Final timeout - always resolve after 500ms max (total cleanup time)
-                  if (!resolved) {
-                    resolved = true
-                    clearInterval(checkInterval)
-                    clearTimeout(failsafeTimeout)
-                    resolve()
+                    // Final timeout - always resolve after 500ms max (total cleanup time)
+                    if (!resolved) {
+                      resolved = true
+                      clearInterval(checkInterval)
+                      clearTimeout(failsafeTimeout)
+                      resolve()
+                    }
+                  } catch {
+                    // Handle any errors in the escalation sequence
+                    if (!resolved) {
+                      resolved = true
+                      clearInterval(checkInterval)
+                      clearTimeout(failsafeTimeout)
+                      resolve()
+                    }
                   }
-                } catch {
-                  // Handle any errors in the escalation sequence
-                  if (!resolved) {
-                    resolved = true
-                    clearInterval(checkInterval)
-                    clearTimeout(failsafeTimeout)
-                    resolve()
-                  }
-                }
+                })()
               })
             }
           } catch (processError) {
@@ -3247,8 +3261,14 @@ async function callMCPTool({
 }
 
 function extractToolUseId(message: AssistantMessage): string | undefined {
-  const firstBlock = (message.message.content as ContentBlockParam[] | undefined)?.[0]
-  if (!firstBlock || typeof firstBlock === 'string' || firstBlock.type !== 'tool_use') {
+  const firstBlock = (
+    message.message.content as ContentBlockParam[] | undefined
+  )?.[0]
+  if (
+    !firstBlock ||
+    typeof firstBlock === 'string' ||
+    firstBlock.type !== 'tool_use'
+  ) {
     return undefined
   }
   return firstBlock.id

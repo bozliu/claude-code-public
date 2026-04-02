@@ -1,0 +1,1018 @@
+{
+  "generatedAt": "2026-04-02T12:20:19.918Z",
+  "githubRepoUrl": "https://github.com/bozliu/claude-code-public",
+  "hero": {
+    "eyebrow": "Repo Explorer",
+    "title": "Claude Code, mapped from the source.",
+    "description": "An English-first explorer for engineers who want the real shape of the reverse-engineered Claude Code repo: how the loop runs, where tools live, how memory persists, and which paths stay hidden behind feature gates.",
+    "metrics": [
+      {
+        "label": "Source files",
+        "value": "2774",
+        "detail": "519,671 lines across src/"
+      },
+      {
+        "label": "Tools in registry",
+        "value": "46",
+        "detail": "Parsed from src/tools.ts"
+      },
+      {
+        "label": "Slash commands",
+        "value": "58",
+        "detail": "Parsed from src/commands.ts"
+      },
+      {
+        "label": "Feature gates",
+        "value": "85",
+        "detail": "6 explorer deep dives in /website"
+      }
+    ],
+    "primaryCta": {
+      "label": "Start with Agent Loop",
+      "href": "/explore/agent-loop"
+    },
+    "secondaryCta": {
+      "label": "Browse GitHub",
+      "href": "https://github.com/bozliu/claude-code-public"
+    }
+  },
+  "featuredQuote": "The most useful question is not “what does this repo claim to do?” It is “what actually happens after one prompt enters the loop?”",
+  "loopSteps": [
+    {
+      "step": 1,
+      "title": "Shape the input",
+      "summary": "User input is normalized, slash commands are intercepted, and session state is folded into the outgoing prompt.",
+      "sourcePath": "src/utils/processUserInput/processSlashCommand.tsx",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/utils/processUserInput/processSlashCommand.tsx",
+      "detail": "This is where raw terminal input stops being just text. The runtime can rewrite it, attach context, and divert slash commands before the model sees a single token."
+    },
+    {
+      "step": 2,
+      "title": "Enter QueryEngine",
+      "summary": "The session manager prepares prompt state, memory context, transcript persistence, and query options for one turn.",
+      "sourcePath": "src/QueryEngine.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/QueryEngine.ts",
+      "detail": "QueryEngine is the session spine. It owns enough state to make retries, compaction, and persistence feel like one continuous conversation rather than disconnected API calls."
+    },
+    {
+      "step": 3,
+      "title": "Stream the model turn",
+      "summary": "The query loop streams assistant content, tool calls, and stop signals while deciding whether another pass is needed.",
+      "sourcePath": "src/query.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/query.ts",
+      "detail": "The repo’s agentic feel comes from this loop. Tool calls, failures, retries, and budget logic all show up here as visible control flow rather than invisible magic."
+    },
+    {
+      "step": 4,
+      "title": "Ground with tools",
+      "summary": "Tool calls read files, search the repo, execute commands, or reach external systems before the answer continues.",
+      "sourcePath": "src/tools.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools.ts",
+      "detail": "The runtime decides which capabilities exist for this turn. That filtering is what makes the answer evidence-backed instead of a clever but ungrounded guess."
+    },
+    {
+      "step": 5,
+      "title": "Persist memory",
+      "summary": "Session summaries and file-backed memories capture the useful part of the turn for later retrieval and consolidation.",
+      "sourcePath": "src/memdir/memdir.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/memdir/memdir.ts",
+      "detail": "Memory is not treated as a giant external database here. It is a lightweight anti-forgetting layer that keeps the loop coherent across debugging, editing, and retries."
+    }
+  ],
+  "architecture": {
+    "summary": "The repo behaves like a compact operating system for coding work: terminal shell, orchestration, turn loop, tool execution, and supporting services.",
+    "categories": [
+      {
+        "name": "Terminal surface",
+        "summary": "Entrypoints, screens, and UI state compose the visible CLI shell before any model call happens.",
+        "samplePaths": [
+          "src/entrypoints/agentSdkTypes.ts",
+          "src/entrypoints/cli.tsx",
+          "src/entrypoints/init.ts",
+          "src/entrypoints/mcp.ts"
+        ],
+        "count": 76
+      },
+      {
+        "name": "Orchestration core",
+        "summary": "QueryEngine, query.ts, and input processing coordinate one running session across many turns.",
+        "samplePaths": [
+          "src/QueryEngine.ts",
+          "src/context.ts",
+          "src/query.ts",
+          "src/utils/processUserInput/processBashCommand.tsx"
+        ],
+        "count": 18
+      },
+      {
+        "name": "Tool surface",
+        "summary": "The tool registry, tool definitions, and concrete tool implementations turn model intent into action.",
+        "samplePaths": [
+          "src/Tool.ts",
+          "src/tools/AgentTool/AgentTool.tsx",
+          "src/tools/AgentTool/UI.tsx",
+          "src/tools/AgentTool/agentColorManager.ts"
+        ],
+        "count": 283
+      },
+      {
+        "name": "Memory & context",
+        "summary": "File-backed memory, retrieval, compaction, and attachment shaping keep long sessions usable.",
+        "samplePaths": [
+          "src/memdir/__tests__/findRelevantMemories.test.ts",
+          "src/memdir/__tests__/memoryPrompts.test.ts",
+          "src/memdir/__tests__/memoryScan.test.ts",
+          "src/memdir/findRelevantMemories.ts"
+        ],
+        "count": 13
+      },
+      {
+        "name": "Services & extensions",
+        "summary": "Transport, analytics, plugins, skills, and commands extend the core loop into a full product surface.",
+        "samplePaths": [
+          "src/commands/add-dir/add-dir.tsx",
+          "src/commands/add-dir/index.ts",
+          "src/commands/add-dir/validation.ts",
+          "src/commands/advisor.ts"
+        ],
+        "count": 468
+      }
+    ]
+  },
+  "tools": {
+    "summary": "The tool registry is where the runtime turns model intent into permissioned capability. It shows what the agent can really do in this environment.",
+    "categories": [
+      "File operations",
+      "Execution",
+      "Search & fetch",
+      "Agents & tasks",
+      "Planning",
+      "MCP",
+      "System",
+      "Experimental"
+    ],
+    "entries": [
+      {
+        "name": "Agent",
+        "category": "Agents & tasks",
+        "sourcePath": "src/tools/AgentTool/AgentTool.tsx",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/AgentTool/AgentTool.tsx",
+        "summary": "Spawn or delegate work to sub-agents inside the same task loop."
+      },
+      {
+        "name": "AskUserQuestion",
+        "category": "System",
+        "sourcePath": "src/tools/AskUserQuestionTool/AskUserQuestionTool.tsx",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/AskUserQuestionTool/AskUserQuestionTool.tsx",
+        "summary": "Pause and ask the user for a structured clarification when needed."
+      },
+      {
+        "name": "Bash",
+        "category": "Execution",
+        "sourcePath": "src/tools/BashTool/BashTool.tsx",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/BashTool/BashTool.tsx",
+        "summary": "Run shell commands in the working directory with permission checks."
+      },
+      {
+        "name": "Brief",
+        "category": "System",
+        "sourcePath": "src/tools/BriefTool/BriefTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/BriefTool/BriefTool.ts",
+        "summary": "Send a short checkpoint-style update back to the user."
+      },
+      {
+        "name": "Config",
+        "category": "System",
+        "sourcePath": "src/tools/ConfigTool/ConfigTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ConfigTool/ConfigTool.ts",
+        "summary": "Inspect or change runtime configuration from inside the session."
+      },
+      {
+        "name": "CronCreate",
+        "category": "System",
+        "sourcePath": "src/tools/ScheduleCronTool/CronCreateTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ScheduleCronTool/CronCreateTool.ts",
+        "summary": "Cron Create is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "CronDelete",
+        "category": "System",
+        "sourcePath": "src/tools/ScheduleCronTool/CronDeleteTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ScheduleCronTool/CronDeleteTool.ts",
+        "summary": "Cron Delete is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "CronList",
+        "category": "System",
+        "sourcePath": "src/tools/ScheduleCronTool/CronListTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ScheduleCronTool/CronListTool.ts",
+        "summary": "Cron List is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "CtxInspect",
+        "category": "Experimental",
+        "sourcePath": "src/tools/CtxInspectTool/CtxInspectTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/CtxInspectTool/CtxInspectTool.ts",
+        "summary": "Inspect context-collapse state and prompt composition internals."
+      },
+      {
+        "name": "Edit",
+        "category": "File operations",
+        "sourcePath": "src/tools/FileEditTool/FileEditTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/FileEditTool/FileEditTool.ts",
+        "summary": "Patch existing files with scoped edits instead of full rewrites."
+      },
+      {
+        "name": "EnterPlanMode",
+        "category": "Planning",
+        "sourcePath": "src/tools/EnterPlanModeTool/EnterPlanModeTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/EnterPlanModeTool/EnterPlanModeTool.ts",
+        "summary": "Switch the session into a planning-first operating mode."
+      },
+      {
+        "name": "EnterWorktree",
+        "category": "Planning",
+        "sourcePath": "src/tools/EnterWorktreeTool/EnterWorktreeTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/EnterWorktreeTool/EnterWorktreeTool.ts",
+        "summary": "Enter Worktree is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "ExitPlanMode",
+        "category": "Planning",
+        "sourcePath": "src/tools/ExitPlanModeTool/ExitPlanModeV2Tool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ExitPlanModeTool/ExitPlanModeV2Tool.ts",
+        "summary": "Leave plan mode and return to normal execution."
+      },
+      {
+        "name": "ExitWorktree",
+        "category": "Planning",
+        "sourcePath": "src/tools/ExitWorktreeTool/ExitWorktreeTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ExitWorktreeTool/ExitWorktreeTool.ts",
+        "summary": "Exit Worktree is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "Glob",
+        "category": "File operations",
+        "sourcePath": "src/tools/GlobTool/GlobTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/GlobTool/GlobTool.ts",
+        "summary": "Find files by path pattern when direct reads are too narrow."
+      },
+      {
+        "name": "Grep",
+        "category": "File operations",
+        "sourcePath": "src/tools/GrepTool/GrepTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/GrepTool/GrepTool.ts",
+        "summary": "Search source text across the repo with grep-style matching."
+      },
+      {
+        "name": "ListMcpResources",
+        "category": "MCP",
+        "sourcePath": "src/tools/ListMcpResourcesTool/ListMcpResourcesTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ListMcpResourcesTool/ListMcpResourcesTool.ts",
+        "summary": "Inspect structured resources exposed by MCP servers."
+      },
+      {
+        "name": "ListPeers",
+        "category": "Agents & tasks",
+        "sourcePath": "src/tools/ListPeersTool/ListPeersTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ListPeersTool/ListPeersTool.ts",
+        "summary": "List Peers is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "LSP",
+        "category": "Search & fetch",
+        "sourcePath": "src/tools/LSPTool/LSPTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/LSPTool/LSPTool.ts",
+        "summary": "Ask language-server tooling for code intelligence when enabled."
+      },
+      {
+        "name": "Monitor",
+        "category": "Experimental",
+        "sourcePath": "src/tools/MonitorTool/MonitorTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/MonitorTool/MonitorTool.ts",
+        "summary": "Monitor is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "NotebookEdit",
+        "category": "File operations",
+        "sourcePath": "src/tools/NotebookEditTool/NotebookEditTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/NotebookEditTool/NotebookEditTool.ts",
+        "summary": "Edit notebook files as a first-class artifact."
+      },
+      {
+        "name": "OverflowTest",
+        "category": "Experimental",
+        "sourcePath": "src/tools/OverflowTestTool/OverflowTestTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/OverflowTestTool/OverflowTestTool.ts",
+        "summary": "Overflow Test is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "Read",
+        "category": "File operations",
+        "sourcePath": "src/tools/FileReadTool/FileReadTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/FileReadTool/FileReadTool.ts",
+        "summary": "Read files with line-aware truncation, PDF handling, and attachment logic."
+      },
+      {
+        "name": "ReadMcpResource",
+        "category": "MCP",
+        "sourcePath": "src/tools/ReadMcpResourceTool/ReadMcpResourceTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ReadMcpResourceTool/ReadMcpResourceTool.ts",
+        "summary": "Read one MCP resource payload directly into the turn."
+      },
+      {
+        "name": "RemoteTrigger",
+        "category": "System",
+        "sourcePath": "src/tools/RemoteTriggerTool/RemoteTriggerTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/RemoteTriggerTool/RemoteTriggerTool.ts",
+        "summary": "Remote Trigger is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "REPL",
+        "category": "Execution",
+        "sourcePath": "src/tools/REPLTool/REPLTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/REPLTool/REPLTool.ts",
+        "summary": "Use the Ant-only REPL tool surface when present."
+      },
+      {
+        "name": "SendUserFile",
+        "category": "Experimental",
+        "sourcePath": "src/tools/SendUserFileTool/SendUserFileTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/SendUserFileTool/SendUserFileTool.ts",
+        "summary": "Send User File is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "Skill",
+        "category": "System",
+        "sourcePath": "src/tools/SkillTool/SkillTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/SkillTool/SkillTool.ts",
+        "summary": "Invoke a skill workflow without leaving the current conversation."
+      },
+      {
+        "name": "Sleep",
+        "category": "Experimental",
+        "sourcePath": "src/tools/SleepTool/SleepTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/SleepTool/SleepTool.ts",
+        "summary": "Sleep is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "Snip",
+        "category": "System",
+        "sourcePath": "src/tools/SnipTool/SnipTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/SnipTool/SnipTool.ts",
+        "summary": "Manually snip conversation history when collapse features are enabled."
+      },
+      {
+        "name": "SubscribePR",
+        "category": "Experimental",
+        "sourcePath": "src/tools/SubscribePRTool/SubscribePRTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/SubscribePRTool/SubscribePRTool.ts",
+        "summary": "Subscribe PR is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "TaskCreate",
+        "category": "Agents & tasks",
+        "sourcePath": "src/tools/TaskCreateTool/TaskCreateTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/TaskCreateTool/TaskCreateTool.ts",
+        "summary": "Create a tracked task item inside Todo v2 mode."
+      },
+      {
+        "name": "TaskGet",
+        "category": "Agents & tasks",
+        "sourcePath": "src/tools/TaskGetTool/TaskGetTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/TaskGetTool/TaskGetTool.ts",
+        "summary": "Inspect a single tracked task item."
+      },
+      {
+        "name": "TaskList",
+        "category": "Agents & tasks",
+        "sourcePath": "src/tools/TaskListTool/TaskListTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/TaskListTool/TaskListTool.ts",
+        "summary": "List tracked tasks in the current session."
+      },
+      {
+        "name": "TaskOutput",
+        "category": "Agents & tasks",
+        "sourcePath": "src/tools/TaskOutputTool/TaskOutputTool.tsx",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/TaskOutputTool/TaskOutputTool.tsx",
+        "summary": "Return a structured task result back into the loop."
+      },
+      {
+        "name": "TaskStop",
+        "category": "Agents & tasks",
+        "sourcePath": "src/tools/TaskStopTool/TaskStopTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/TaskStopTool/TaskStopTool.ts",
+        "summary": "Mark a subtask as complete and end its execution path."
+      },
+      {
+        "name": "TaskUpdate",
+        "category": "Agents & tasks",
+        "sourcePath": "src/tools/TaskUpdateTool/TaskUpdateTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/TaskUpdateTool/TaskUpdateTool.ts",
+        "summary": "Update tracked task state from inside the loop."
+      },
+      {
+        "name": "TestingPermission",
+        "category": "Experimental",
+        "sourcePath": "src/tools/testing/TestingPermissionTool.tsx",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/testing/TestingPermissionTool.tsx",
+        "summary": "Testing Permission is exposed through the tool registry for agent execution."
+      },
+      {
+        "name": "TodoWrite",
+        "category": "System",
+        "sourcePath": "src/tools/TodoWriteTool/TodoWriteTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/TodoWriteTool/TodoWriteTool.ts",
+        "summary": "Maintain the lightweight todo list used during complex tasks."
+      },
+      {
+        "name": "ToolSearch",
+        "category": "Search & fetch",
+        "sourcePath": "src/tools/ToolSearchTool/ToolSearchTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/ToolSearchTool/ToolSearchTool.ts",
+        "summary": "Search the tool registry when the model needs discovery help."
+      },
+      {
+        "name": "Tungsten",
+        "category": "Experimental",
+        "sourcePath": "src/tools/TungstenTool/TungstenTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/TungstenTool/TungstenTool.ts",
+        "summary": "Surface Anthropic-internal Tungsten capabilities in Ant builds."
+      },
+      {
+        "name": "WebBrowser",
+        "category": "Search & fetch",
+        "sourcePath": "src/tools/WebBrowserTool/WebBrowserTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/WebBrowserTool/WebBrowserTool.ts",
+        "summary": "Use the built-in browser surface when that experimental flag is on."
+      },
+      {
+        "name": "WebFetch",
+        "category": "Search & fetch",
+        "sourcePath": "src/tools/WebFetchTool/WebFetchTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/WebFetchTool/WebFetchTool.ts",
+        "summary": "Fetch and inspect a specific web page or URL."
+      },
+      {
+        "name": "WebSearch",
+        "category": "Search & fetch",
+        "sourcePath": "src/tools/WebSearchTool/WebSearchTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/WebSearchTool/WebSearchTool.ts",
+        "summary": "Search the web from inside the current turn."
+      },
+      {
+        "name": "Workflow",
+        "category": "System",
+        "sourcePath": "src/tools/WorkflowTool/WorkflowTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/WorkflowTool/WorkflowTool.ts",
+        "summary": "Run packaged workflow scripts through the tool layer."
+      },
+      {
+        "name": "Write",
+        "category": "File operations",
+        "sourcePath": "src/tools/FileWriteTool/FileWriteTool.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/tools/FileWriteTool/FileWriteTool.ts",
+        "summary": "Create or fully rewrite files in the working tree."
+      }
+    ]
+  },
+  "commands": {
+    "summary": "Slash commands are the operator control surface. They let you steer planning, context, auth, memory, and diagnostics without leaving the terminal.",
+    "categories": [
+      "Setup & config",
+      "Daily workflow",
+      "Code review & git",
+      "Debugging & diagnostics",
+      "Advanced & experimental"
+    ],
+    "entries": [
+      {
+        "name": "/advisor",
+        "category": "Advanced & experimental",
+        "summary": "Configure the advisor model",
+        "sourcePath": "src/commands/advisor.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/advisor.ts"
+      },
+      {
+        "name": "/agents",
+        "category": "Daily workflow",
+        "summary": "Manage agent configurations",
+        "sourcePath": "src/commands/agents/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/agents/index.ts"
+      },
+      {
+        "name": "/branch",
+        "category": "Code review & git",
+        "summary": "Create a branch of the current conversation at this point",
+        "sourcePath": "src/commands/branch/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/branch/index.ts"
+      },
+      {
+        "name": "/btw",
+        "category": "Advanced & experimental",
+        "summary": "Ask a quick side question without interrupting the main conversation",
+        "sourcePath": "src/commands/btw/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/btw/index.ts"
+      },
+      {
+        "name": "/chrome",
+        "category": "Setup & config",
+        "summary": "Claude in Chrome (Beta) settings",
+        "sourcePath": "src/commands/chrome/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/chrome/index.ts"
+      },
+      {
+        "name": "/clear",
+        "category": "Daily workflow",
+        "summary": "Clear conversation history and free up context",
+        "sourcePath": "src/commands/clear/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/clear/index.ts"
+      },
+      {
+        "name": "/color",
+        "category": "Setup & config",
+        "summary": "Set the prompt bar color for this session",
+        "sourcePath": "src/commands/color/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/color/index.ts"
+      },
+      {
+        "name": "/compact",
+        "category": "Daily workflow",
+        "summary": "Clear conversation history but keep a summary in context. Optional: /compact [instructions for summarization]",
+        "sourcePath": "src/commands/compact/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/compact/index.ts"
+      },
+      {
+        "name": "/config",
+        "category": "Setup & config",
+        "summary": "Open config panel",
+        "sourcePath": "src/commands/config/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/config/index.ts"
+      },
+      {
+        "name": "/context",
+        "category": "Daily workflow",
+        "summary": "Visualize current context usage as a colored grid",
+        "sourcePath": "src/commands/context/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/context/index.ts"
+      },
+      {
+        "name": "/copy",
+        "category": "Daily workflow",
+        "summary": "Copy Claude",
+        "sourcePath": "src/commands/copy/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/copy/index.ts"
+      },
+      {
+        "name": "/cost",
+        "category": "Debugging & diagnostics",
+        "summary": "Show the total cost and duration of the current session",
+        "sourcePath": "src/commands/cost/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/cost/index.ts"
+      },
+      {
+        "name": "/desktop",
+        "category": "Setup & config",
+        "summary": "Continue the current session in Claude Desktop",
+        "sourcePath": "src/commands/desktop/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/desktop/index.ts"
+      },
+      {
+        "name": "/diff",
+        "category": "Code review & git",
+        "summary": "View uncommitted changes and per-turn diffs",
+        "sourcePath": "src/commands/diff/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/diff/index.ts"
+      },
+      {
+        "name": "/doctor",
+        "category": "Setup & config",
+        "summary": "Diagnose and verify your Claude Code installation and settings",
+        "sourcePath": "src/commands/doctor/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/doctor/index.ts"
+      },
+      {
+        "name": "/effort",
+        "category": "Setup & config",
+        "summary": "Set effort level for model usage",
+        "sourcePath": "src/commands/effort/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/effort/index.ts"
+      },
+      {
+        "name": "/exit",
+        "category": "Daily workflow",
+        "summary": "Exit the REPL",
+        "sourcePath": "src/commands/exit/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/exit/index.ts"
+      },
+      {
+        "name": "/extra-usage",
+        "category": "Daily workflow",
+        "summary": "Configure extra usage to keep working when limits are hit",
+        "sourcePath": "src/commands/extra-usage/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/extra-usage/index.ts"
+      },
+      {
+        "name": "/fast",
+        "category": "Daily workflow",
+        "summary": "Built-in command exposed through the REPL command registry.",
+        "sourcePath": "src/commands/fast/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/fast/index.ts"
+      },
+      {
+        "name": "/feedback",
+        "category": "Debugging & diagnostics",
+        "summary": "Built-in command exposed through the REPL command registry.",
+        "sourcePath": "src/commands/feedback/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/feedback/index.ts"
+      },
+      {
+        "name": "/files",
+        "category": "Daily workflow",
+        "summary": "List all files currently in context",
+        "sourcePath": "src/commands/files/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/files/index.ts"
+      },
+      {
+        "name": "/heapdump",
+        "category": "Debugging & diagnostics",
+        "summary": "Dump the JS heap to ~/Desktop",
+        "sourcePath": "src/commands/heapdump/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/heapdump/index.ts"
+      },
+      {
+        "name": "/help",
+        "category": "Daily workflow",
+        "summary": "Show help and available commands",
+        "sourcePath": "src/commands/help/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/help/index.ts"
+      },
+      {
+        "name": "/ide",
+        "category": "Advanced & experimental",
+        "summary": "Manage IDE integrations and show status",
+        "sourcePath": "src/commands/ide/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/ide/index.ts"
+      },
+      {
+        "name": "/init",
+        "category": "Setup & config",
+        "summary": "Built-in command exposed through the REPL command registry.",
+        "sourcePath": "src/commands/init.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/init.ts"
+      },
+      {
+        "name": "/install-github-app",
+        "category": "Code review & git",
+        "summary": "Set up Claude GitHub Actions for a repository",
+        "sourcePath": "src/commands/install-github-app/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/install-github-app/index.ts"
+      },
+      {
+        "name": "/install-slack-app",
+        "category": "Code review & git",
+        "summary": "Install the Claude Slack app",
+        "sourcePath": "src/commands/install-slack-app/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/install-slack-app/index.ts"
+      },
+      {
+        "name": "/keybindings",
+        "category": "Setup & config",
+        "summary": "Open or create your keybindings configuration file",
+        "sourcePath": "src/commands/keybindings/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/keybindings/index.ts"
+      },
+      {
+        "name": "/mcp",
+        "category": "Setup & config",
+        "summary": "Manage MCP servers",
+        "sourcePath": "src/commands/mcp/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/mcp/index.ts"
+      },
+      {
+        "name": "/memory",
+        "category": "Daily workflow",
+        "summary": "Edit Claude memory files",
+        "sourcePath": "src/commands/memory/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/memory/index.ts"
+      },
+      {
+        "name": "/mobile",
+        "category": "Setup & config",
+        "summary": "Show QR code to download the Claude mobile app",
+        "sourcePath": "src/commands/mobile/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/mobile/index.ts"
+      },
+      {
+        "name": "/model",
+        "category": "Setup & config",
+        "summary": "Built-in command exposed through the REPL command registry.",
+        "sourcePath": "src/commands/model/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/model/index.ts"
+      },
+      {
+        "name": "/output-style",
+        "category": "Setup & config",
+        "summary": "Deprecated: use /config to change output style",
+        "sourcePath": "src/commands/output-style/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/output-style/index.ts"
+      },
+      {
+        "name": "/plugin",
+        "category": "Advanced & experimental",
+        "summary": "Manage Claude Code plugins",
+        "sourcePath": "src/commands/plugin/index.tsx",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/plugin/index.tsx"
+      },
+      {
+        "name": "/pr-comments",
+        "category": "Code review & git",
+        "summary": "Get comments from a GitHub pull request",
+        "sourcePath": "src/commands/pr_comments/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/pr_comments/index.ts"
+      },
+      {
+        "name": "/rate-limit-options",
+        "category": "Setup & config",
+        "summary": "Show options when rate limit is reached",
+        "sourcePath": "src/commands/rate-limit-options/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/rate-limit-options/index.ts"
+      },
+      {
+        "name": "/release-notes",
+        "category": "Code review & git",
+        "summary": "View release notes",
+        "sourcePath": "src/commands/release-notes/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/release-notes/index.ts"
+      },
+      {
+        "name": "/reload-plugins",
+        "category": "Advanced & experimental",
+        "summary": "Activate pending plugin changes in the current session",
+        "sourcePath": "src/commands/reload-plugins/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/reload-plugins/index.ts"
+      },
+      {
+        "name": "/remote-env",
+        "category": "Setup & config",
+        "summary": "Configure the default remote environment for teleport sessions",
+        "sourcePath": "src/commands/remote-env/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/remote-env/index.ts"
+      },
+      {
+        "name": "/rename",
+        "category": "Daily workflow",
+        "summary": "Rename the current conversation",
+        "sourcePath": "src/commands/rename/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/rename/index.ts"
+      },
+      {
+        "name": "/resume",
+        "category": "Daily workflow",
+        "summary": "Resume a previous conversation",
+        "sourcePath": "src/commands/resume/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/resume/index.ts"
+      },
+      {
+        "name": "/review",
+        "category": "Code review & git",
+        "summary": "Review a pull request",
+        "sourcePath": "src/commands/review.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/review.ts"
+      },
+      {
+        "name": "/rewind",
+        "category": "Debugging & diagnostics",
+        "summary": "Built-in command exposed through the REPL command registry.",
+        "sourcePath": "src/commands/rewind/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/rewind/index.ts"
+      },
+      {
+        "name": "/security-review",
+        "category": "Code review & git",
+        "summary": "Complete a security review of the pending changes on the current branch",
+        "sourcePath": "src/commands/security-review.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/security-review.ts"
+      },
+      {
+        "name": "/session",
+        "category": "Daily workflow",
+        "summary": "Show remote session URL and QR code",
+        "sourcePath": "src/commands/session/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/session/index.ts"
+      },
+      {
+        "name": "/skills",
+        "category": "Daily workflow",
+        "summary": "List available skills",
+        "sourcePath": "src/commands/skills/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/skills/index.ts"
+      },
+      {
+        "name": "/stats",
+        "category": "Debugging & diagnostics",
+        "summary": "Show your Claude Code usage statistics and activity",
+        "sourcePath": "src/commands/stats/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/stats/index.ts"
+      },
+      {
+        "name": "/status",
+        "category": "Debugging & diagnostics",
+        "summary": "Show Claude Code status including version, model, account, API connectivity, and tool statuses",
+        "sourcePath": "src/commands/status/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/status/index.ts"
+      },
+      {
+        "name": "/statusline",
+        "category": "Advanced & experimental",
+        "summary": "Set up Claude Code",
+        "sourcePath": "src/commands/statusline.tsx",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/statusline.tsx"
+      },
+      {
+        "name": "/stickers",
+        "category": "Advanced & experimental",
+        "summary": "Order Claude Code stickers",
+        "sourcePath": "src/commands/stickers/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/stickers/index.ts"
+      },
+      {
+        "name": "/tag",
+        "category": "Daily workflow",
+        "summary": "Toggle a searchable tag on the current session",
+        "sourcePath": "src/commands/tag/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/tag/index.ts"
+      },
+      {
+        "name": "/terminal-setup",
+        "category": "Setup & config",
+        "summary": "Built-in command exposed through the REPL command registry.",
+        "sourcePath": "src/commands/terminalSetup/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/terminalSetup/index.ts"
+      },
+      {
+        "name": "/theme",
+        "category": "Setup & config",
+        "summary": "Change the theme",
+        "sourcePath": "src/commands/theme/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/theme/index.ts"
+      },
+      {
+        "name": "/ultrareview",
+        "category": "Advanced & experimental",
+        "summary": "Review a pull request",
+        "sourcePath": "src/commands/review.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/review.ts"
+      },
+      {
+        "name": "/upgrade",
+        "category": "Setup & config",
+        "summary": "Upgrade to Max for higher rate limits and more Opus",
+        "sourcePath": "src/commands/upgrade/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/upgrade/index.ts"
+      },
+      {
+        "name": "/usage",
+        "category": "Debugging & diagnostics",
+        "summary": "Show plan usage limits",
+        "sourcePath": "src/commands/usage/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/usage/index.ts"
+      },
+      {
+        "name": "/vim",
+        "category": "Setup & config",
+        "summary": "Toggle between Vim and Normal editing modes",
+        "sourcePath": "src/commands/vim/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/vim/index.ts"
+      },
+      {
+        "name": "/web-setup",
+        "category": "Advanced & experimental",
+        "summary": "Setup Claude Code on the web (requires connecting your GitHub account)",
+        "sourcePath": "src/commands/remote-setup/index.ts",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands/remote-setup/index.ts"
+      }
+    ]
+  },
+  "memory": {
+    "summary": "This repo treats memory as a file-based execution aid, not a massive external knowledge graph. The goal is to keep useful context alive while the agent iterates.",
+    "highlights": [
+      {
+        "title": "Session transcripts act as episodic memory",
+        "summary": "Every turn is persisted so the repo can reconstruct what happened, not just what the latest prompt says.",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/QueryEngine.ts"
+      },
+      {
+        "title": "SessionMemory distills while the conversation is still live",
+        "summary": "The runtime does lightweight distillation before the session ends, so useful structure is already present when the next turn starts.",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/memdir/memdir.ts"
+      },
+      {
+        "title": "extractMemories forks a sub-agent for semantic compression",
+        "summary": "Persistent memories are promoted from dialogue into reusable Markdown files instead of staying trapped in transcript history.",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/services/extractMemories/prompts.ts"
+      },
+      {
+        "title": "autoDream consolidates, merges, and prunes",
+        "summary": "Background consolidation keeps the file-based memory set from becoming a pile of repetitive fragments.",
+        "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/services/autoDream/consolidationPrompt.ts"
+      }
+    ]
+  },
+  "hiddenFeatures": [
+    {
+      "name": "KAIROS",
+      "gate": "feature('KAIROS')",
+      "summary": "Bundles assistant mode, background behavior, dream work, and user messaging flows.",
+      "sourcePath": "src/bridge/bridgeMain.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/bridge/bridgeMain.ts"
+    },
+    {
+      "name": "PROACTIVE",
+      "gate": "feature('PROACTIVE')",
+      "summary": "Allows the agent to wake itself up and decide whether it should act.",
+      "sourcePath": "src/cli/print.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/cli/print.ts"
+    },
+    {
+      "name": "COORDINATOR_MODE",
+      "gate": "feature('COORDINATOR_MODE')",
+      "summary": "Turns the main agent into a delegating coordinator for sub-agents.",
+      "sourcePath": "src/QueryEngine.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/QueryEngine.ts"
+    },
+    {
+      "name": "BRIDGE_MODE",
+      "gate": "feature('BRIDGE_MODE')",
+      "summary": "Exposes a remote-control bridge for the CLI surface.",
+      "sourcePath": "src/bridge/bridgeEnabled.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/bridge/bridgeEnabled.ts"
+    },
+    {
+      "name": "EXTRACT_MEMORIES",
+      "gate": "feature('EXTRACT_MEMORIES')",
+      "summary": "Runs post-turn memory extraction through a forked sub-agent.",
+      "sourcePath": "src/cli/print.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/cli/print.ts"
+    },
+    {
+      "name": "TOKEN_BUDGET",
+      "gate": "feature('TOKEN_BUDGET')",
+      "summary": "Injects budget tracking and turn-level cost controls into the loop.",
+      "sourcePath": "src/components/PromptInput/PromptInput.tsx",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/components/PromptInput/PromptInput.tsx"
+    },
+    {
+      "name": "BUDDY",
+      "gate": "feature('BUDDY')",
+      "summary": "Enables the mascot-style /buddy command and its terminal pet behavior.",
+      "sourcePath": "src/buddy/CompanionSprite.tsx",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/buddy/CompanionSprite.tsx"
+    },
+    {
+      "name": "WORKFLOW_SCRIPTS",
+      "gate": "feature('WORKFLOW_SCRIPTS')",
+      "summary": "Turns packaged workflow scripts into callable commands and tools.",
+      "sourcePath": "src/commands.ts",
+      "githubUrl": "https://github.com/bozliu/claude-code-public/blob/main/src/commands.ts"
+    }
+  ],
+  "deepDives": [
+    {
+      "slug": "agent-loop",
+      "title": "Agent Loop",
+      "summary": "Trace one turn end to end.",
+      "readingTime": "6 min read"
+    },
+    {
+      "slug": "architecture",
+      "title": "Architecture",
+      "summary": "Learn the five-layer stack.",
+      "readingTime": "5 min read"
+    },
+    {
+      "slug": "tools",
+      "title": "Tools",
+      "summary": "See how capabilities are filtered and surfaced.",
+      "readingTime": "5 min read"
+    },
+    {
+      "slug": "commands",
+      "title": "Commands",
+      "summary": "Browse the operator-facing slash command surface.",
+      "readingTime": "4 min read"
+    },
+    {
+      "slug": "memory",
+      "title": "Memory",
+      "summary": "Understand file-based retrieval and consolidation.",
+      "readingTime": "5 min read"
+    },
+    {
+      "slug": "hidden-features",
+      "title": "Hidden Features",
+      "summary": "Inspect the gated paths shaping the product’s direction.",
+      "readingTime": "4 min read"
+    }
+  ]
+}
