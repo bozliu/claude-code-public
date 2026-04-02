@@ -110,8 +110,11 @@ export function OutputLine(t0) {
  * stripAnsi(), because we used to do that and people complained about losing
  * all formatting. So we just strip the underline ANSI codes specifically.
  */
+const UNDERLINE_ANSI_RE = new RegExp(
+  '\\u001b\\[([0-9]+;)*4(;[0-9]+)*m|\\u001b\\[4(;[0-9]+)*m|\\u001b\\[([0-9]+;)*4m',
+  'g',
+)
+
 export function stripUnderlineAnsi(content: string): string {
-  return content.replace(
-  // eslint-disable-next-line no-control-regex
-  /\u001b\[([0-9]+;)*4(;[0-9]+)*m|\u001b\[4(;[0-9]+)*m|\u001b\[([0-9]+;)*4m/g, '');
+  return content.replace(UNDERLINE_ANSI_RE, '')
 }

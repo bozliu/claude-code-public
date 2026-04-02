@@ -1,21 +1,20 @@
 # Security Policy
 
-## Supported Versions
+## Supported Branch
 
-Use this section to tell people about which versions of your project are
-currently being supported with security updates.
+Security fixes are accepted for the `main` branch only.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 5.1.x   | :white_check_mark: |
-| 5.0.x   | :x:                |
-| 4.0.x   | :white_check_mark: |
-| < 4.0   | :x:                |
+## Reporting A Vulnerability
 
-## Reporting a Vulnerability
+Please use GitHub's private vulnerability reporting flow for this repository when it is available.
 
-Use this section to tell people how to report a vulnerability.
+If private reporting is not available, open a regular GitHub issue only for non-sensitive problems. Do not post exploit details, secrets, or private infrastructure information in a public issue.
 
-Tell them where to go, how often they can expect to get an update on a
-reported vulnerability, what to expect if the vulnerability is accepted or
-declined, etc.
+When reporting a vulnerability, include:
+
+- a short description of the issue
+- the affected file or subsystem
+- reproduction steps or a proof of concept
+- impact assessment and any suggested mitigation
+
+Best-effort acknowledgement will happen as quickly as possible, but no SLA is guaranteed.

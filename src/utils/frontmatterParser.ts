@@ -10,11 +10,24 @@ import { parseYaml } from './yaml.js'
 export type FrontmatterData = {
   // YAML can return null for keys with no value (e.g., "key:" with nothing after)
   'allowed-tools'?: string | string[] | null
+  applies_to?: string | string[] | null
+  agent?: string | null
+  'argument-hint'?: string | null
+  context?: 'inline' | 'fork' | null
   description?: string | null
+  effort?: string | null
+  hooks?: HooksSettings | null
+  model?: string | null
+  name?: string | null
+  paths?: string | string[] | null
+  polarity?: string | null
+  shell?: string | null
+  signals?: string | string[] | null
+  skills?: string | null
+  strength?: string | null
   // Memory type: 'user', 'feedback', 'project', or 'reference'
   // Only applicable to memory files; narrowed via parseMemoryType() in src/memdir/memoryTypes.ts
   type?: string | null
-  'argument-hint'?: string | null
   when_to_use?: string | null
   version?: string | null
   // Only applicable to slash commands -- a string similar to a boolean env var
@@ -22,39 +35,11 @@ export type FrontmatterData = {
   'hide-from-slash-command-tool'?: string | null
   // Model alias or name (e.g., 'haiku', 'sonnet', 'opus', or specific model names)
   // Use 'inherit' for commands to use the parent model
-  model?: string | null
-  // Comma-separated list of skill names to preload (only applicable to agents)
-  skills?: string | null
   // Whether users can invoke this skill by typing /skill-name
   // 'true' = user can type /skill-name to invoke
   // 'false' = only model can invoke via Skill tool
   // Default depends on source: commands/ defaults to true, skills/ defaults to false
   'user-invocable'?: string | null
-  // Hooks to register when this skill is invoked
-  // Keys are hook events (PreToolUse, PostToolUse, Stop, etc.)
-  // Values are arrays of matcher configurations with hooks
-  // Validated by HooksSchema in loadSkillsDir.ts
-  hooks?: HooksSettings | null
-  // Effort level for agents (e.g., 'low', 'medium', 'high', 'max', or an integer)
-  // Controls the thinking effort used by the agent's model
-  effort?: string | null
-  // Execution context for skills: 'inline' (default) or 'fork' (run as sub-agent)
-  // 'inline' = skill content expands into the current conversation
-  // 'fork' = skill runs in a sub-agent with separate context and token budget
-  context?: 'inline' | 'fork' | null
-  // Agent type to use when forked (e.g., 'Bash', 'general-purpose')
-  // Only applicable when context is 'fork'
-  agent?: string | null
-  // Glob patterns for file paths this skill applies to. Accepts either a
-  // comma-separated string or a YAML list of strings.
-  // When set, the skill is only activated when the model touches matching files
-  // Uses the same format as CLAUDE.md paths frontmatter
-  paths?: string | string[] | null
-  // Shell to use for !`cmd` and ```! blocks in skill/command .md content.
-  // 'bash' (default) or 'powershell'. File-scoped — applies to all !-blocks.
-  // Never consults settings.defaultShell: skills are portable across platforms,
-  // so the author picks the shell, not the reader. See docs/design/ps-shell-selection.md §5.3.
-  shell?: string | null
   [key: string]: unknown
 }
 

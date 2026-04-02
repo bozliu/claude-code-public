@@ -167,6 +167,11 @@ import { CHROME_TOOL_SEARCH_INSTRUCTIONS } from 'src/utils/claudeInChrome/prompt
 import { getMaxThinkingTokensForModel } from 'src/utils/context.js'
 import { logForDebugging } from 'src/utils/debug.js'
 import { logForDiagnosticsNoPII } from 'src/utils/diagLogs.js'
+import {
+  summarizeApiMessagesForTrace,
+  summarizeSystemPromptForTrace,
+  traceAgentLoop,
+} from 'src/utils/agentLoopTrace.js'
 import { type EffortValue, modelSupportsEffort } from 'src/utils/effort.js'
 import {
   isFastModeAvailable,
@@ -1797,6 +1802,23 @@ async function* queryModel(
 
         const params = paramsFromContext(context)
         captureAPIRequest(params, options.querySource) // Capture for bug reports
+
+        traceAgentLoop('api_request_finalized', {
+          model: normalizeModelStringForAPI(options.model),
+          querySource: options.querySource,
+          messageCount: params.messages.length,
+          messageTail: summarizeApiMessagesForTrace(params.messages, 6),
+          systemPrompt: summarizeSystemPromptForTrace(params.system),
+          toolNames: (params.tools ?? [])
+            .map(tool =>
+              tool && typeof tool === 'object' && 'name' in tool
+                ? String(tool.name)
+                : 'unknown',
+            )
+            .slice(0, 12),
+          betaCount: params.betas?.length ?? 0,
+          maxTokens: params.max_tokens,
+        })
 
         maxOutputTokens = params.max_tokens
 

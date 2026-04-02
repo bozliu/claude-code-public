@@ -47,6 +47,10 @@ For each thing worth remembering, write or update a memory file at the top level
 
 Focus on:
 - Merging new signal into existing topic files rather than creating near-duplicates
+- When you touch a \`feedback\` memory, rewrite it to the normalized schema: \`polarity\`, \`applies_to\`, \`strength\`, and \`signals\`
+- Use \`polarity: prefer\` for validated good approaches and \`polarity: avoid\` for corrections or anti-patterns
+- Merge duplicate \`feedback\` files before adding new ones; if two files say the same thing, keep the stronger one and fold any useful \`Why:\` / \`How to apply:\` details into it
+- Delete or fold memories that only repeat an existing rule without adding new \`Why:\` / \`How to apply:\` signal
 - Converting relative dates ("yesterday", "last week") to absolute dates so they remain interpretable after time passes
 - Deleting contradicted facts — if today's investigation disproves an old memory, fix it at the source
 

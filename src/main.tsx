@@ -1018,7 +1018,6 @@ async function run(): Promise<CommanderCommand> {
     // Ignore "code" as a prompt - treat it the same as no prompt
     if (prompt === 'code') {
       logEvent('tengu_code_prompt_ignored', {});
-      // biome-ignore lint/suspicious/noConsole:: intentional console output
       console.warn(chalk.yellow('Tip: You can launch Claude Code with just `claude`'));
       prompt = undefined;
     }
@@ -1065,7 +1064,6 @@ async function run(): Promise<CommanderCommand> {
       agentId?: unknown;
     }).agentId && kairosGate) {
       if (!checkHasTrustDialogAccepted()) {
-        // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.warn(chalk.yellow('Assistant mode disabled: directory is not trusted. Accept the trust dialog and restart.'));
       } else {
         // Blocking gate check — returns cached `true` instantly; if disk
@@ -1555,7 +1553,6 @@ async function run(): Promise<CommanderCommand> {
         });
         logForDebugging(`[Claude in Chrome] Error: ${error}`);
         logError(error);
-        // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.error(`Error: Failed to run with Claude in Chrome.`);
         process.exit(1);
       }
@@ -1772,7 +1769,6 @@ async function run(): Promise<CommanderCommand> {
 
     // Print any warnings from initialization
     warnings.forEach(warning => {
-      // biome-ignore lint/suspicious/noConsole:: intentional console output
       console.error(warning);
     });
     void assertMinVersion();
@@ -1816,12 +1812,10 @@ async function run(): Promise<CommanderCommand> {
     // NOTE: We do NOT call prefetchAllMcpResources here - that's deferred until after trust dialog
 
     if (inputFormat && inputFormat !== 'text' && inputFormat !== 'stream-json') {
-      // biome-ignore lint/suspicious/noConsole:: intentional console output
       console.error(`Error: Invalid input format "${inputFormat}".`);
       process.exit(1);
     }
     if (inputFormat === 'stream-json' && outputFormat !== 'stream-json') {
-      // biome-ignore lint/suspicious/noConsole:: intentional console output
       console.error(`Error: --input-format=stream-json requires output-format=stream-json.`);
       process.exit(1);
     }
@@ -1829,7 +1823,6 @@ async function run(): Promise<CommanderCommand> {
     // Validate sdkUrl is only used with appropriate formats (formats are auto-set above)
     if (sdkUrl) {
       if (inputFormat !== 'stream-json' || outputFormat !== 'stream-json') {
-        // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.error(`Error: --sdk-url requires both --input-format=stream-json and --output-format=stream-json.`);
         process.exit(1);
       }
@@ -1838,7 +1831,6 @@ async function run(): Promise<CommanderCommand> {
     // Validate replayUserMessages is only used with stream-json formats
     if (options.replayUserMessages) {
       if (inputFormat !== 'stream-json' || outputFormat !== 'stream-json') {
-        // biome-ignore lint/suspicious/noConsole:: intentional console output
         console.error(`Error: --replay-user-messages requires both --input-format=stream-json and --output-format=stream-json.`);
         process.exit(1);
       }
@@ -4082,7 +4074,6 @@ async function run(): Promise<CommanderCommand> {
         setDirectConnectServerUrl(serverUrl);
         connectConfig = session.config;
       } catch (err) {
-        // biome-ignore lint/suspicious/noConsole: intentional error output
         console.error(err instanceof DirectConnectError ? err.message : String(err));
         process.exit(1);
       }

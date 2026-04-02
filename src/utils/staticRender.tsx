@@ -72,8 +72,9 @@ function extractFirstFrame(output: string): string {
  * Renders a React node to a string with ANSI escape codes (for terminal output).
  */
 export function renderToAnsiString(node: React.ReactNode, columns?: number): Promise<string> {
-  return new Promise(async resolve => {
-    let output = '';
+  return new Promise(resolve => {
+    void (async () => {
+      let output = '';
 
     // Capture all writes. Set .columns so Ink (ink.tsx:~165) picks up a
     // chosen width instead of PassThrough's undefined → 80 fallback —
@@ -102,7 +103,8 @@ export function renderToAnsiString(node: React.ReactNode, columns?: number): Pro
 
     // Extract only the first frame's content to avoid duplication
     // (Ink outputs multiple frames in non-TTY mode)
-    await resolve(extractFirstFrame(output));
+      resolve(extractFirstFrame(output));
+    })();
   });
 }
 

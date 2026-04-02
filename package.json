@@ -3,14 +3,14 @@
   "version": "1.0.3",
   "description": "Reverse-engineered Anthropic Claude Code CLI — interactive AI coding assistant in the terminal",
   "type": "module",
-  "author": "claude-code-best <claude-code-best@proton.me>",
+  "author": "Boz Liu",
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/claude-code-best/claude-code.git"
+    "url": "git+https://github.com/bozliu/claude-code-public.git"
   },
-  "homepage": "https://github.com/claude-code-best/claude-code#readme",
+  "homepage": "https://github.com/bozliu/claude-code-public#readme",
   "bugs": {
-    "url": "https://github.com/claude-code-best/claude-code/issues"
+    "url": "https://github.com/bozliu/claude-code-public/issues"
   },
   "keywords": [
     "claude",
@@ -45,7 +45,9 @@
     "test": "bun test",
     "check:unused": "knip-bun",
     "health": "bun run scripts/health-check.ts",
-    "docs:dev": "npx mintlify dev"
+    "website:dev": "npm --prefix website run dev",
+    "website:build": "npm --prefix website run build",
+    "website:generate": "npm --prefix website run generate"
   },
   "dependencies": {},
   "devDependencies": {

@@ -110,6 +110,11 @@ import {
 } from './bootstrap/state.js'
 import { createBudgetTracker, checkTokenBudget } from './query/tokenBudget.js'
 import { count } from './utils/array.js'
+import {
+  summarizeMessagesForTrace,
+  summarizeToolUseBlocksForTrace,
+  traceAgentLoop,
+} from './utils/agentLoopTrace.js'
 
 /* eslint-disable @typescript-eslint/no-require-imports */
 const snipModule = feature('HISTORY_SNIP')
@@ -845,6 +850,16 @@ async function* queryLoop(
                   streamingToolExecutor.addTool(toolBlock, assistantMessage)
                 }
               }
+
+              traceAgentLoop('assistant_message_received', {
+                assistantMessages: assistantMessages.length,
+                needsFollowUp,
+                assistantMessage: summarizeMessagesForTrace(
+                  [assistantMessage],
+                  1,
+                )[0],
+                toolUseBlocks: summarizeToolUseBlocksForTrace(msgToolUseBlocks),
+              })
             }
 
             if (
@@ -1063,6 +1078,11 @@ async function* queryLoop(
     }
 
     if (!needsFollowUp) {
+      traceAgentLoop('loop_completed_without_followup', {
+        assistantMessages: assistantMessages.length,
+        lastAssistant:
+          summarizeMessagesForTrace(assistantMessages, 1)[0] ?? null,
+      })
       const lastMessage = assistantMessages.at(-1)
 
       // Prompt-too-long recovery: the streaming loop withheld the error
@@ -1401,6 +1421,12 @@ async function* queryLoop(
             toolUseContext.options.tools,
           ).filter(_ => _.type === 'user'),
         )
+
+        traceAgentLoop('tool_update_received', {
+          toolResultsCount: toolResults.length,
+          updateMessage:
+            summarizeMessagesForTrace([update.message as Message], 1)[0] ?? null,
+        })
       }
       if (update.newContext) {
         updatedToolUseContext = {
@@ -1410,6 +1436,14 @@ async function* queryLoop(
       }
     }
     queryCheckpoint('query_tool_execution_end')
+
+    traceAgentLoop('tool_results_collected', {
+      toolUseBlocks: summarizeToolUseBlocksForTrace(toolUseBlocks),
+      toolResults: summarizeMessagesForTrace(toolResults as Message[], 6),
+      nextMessageCount:
+        messagesForQuery.length + assistantMessages.length + toolResults.length,
+      shouldPreventContinuation,
+    })
 
     // Generate tool use summary after tool batch completes — passed to next recursive call
     let nextPendingToolUseSummary:
@@ -1727,6 +1761,11 @@ async function* queryLoop(
       stopHookActive,
       transition: { reason: 'next_turn' },
     }
+    traceAgentLoop('loop_continues_with_followup', {
+      nextTurnCount,
+      messageCount: next.messages.length,
+      messageTail: summarizeMessagesForTrace(next.messages, 6),
+    })
     state = next
   } // while (true)
 }

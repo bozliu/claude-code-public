@@ -20,6 +20,22 @@ export const MEMORY_TYPES = [
 
 export type MemoryType = (typeof MEMORY_TYPES)[number]
 
+export const FEEDBACK_POLARITIES = ['prefer', 'avoid'] as const
+export type FeedbackPolarity = (typeof FEEDBACK_POLARITIES)[number]
+
+export const FEEDBACK_APPLIES_TO = [
+  'planning',
+  'coding',
+  'testing',
+  'verification',
+  'communication',
+  'tool-use',
+] as const
+export type FeedbackAppliesTo = (typeof FEEDBACK_APPLIES_TO)[number]
+
+export const FEEDBACK_STRENGTHS = ['hard', 'soft'] as const
+export type FeedbackStrength = (typeof FEEDBACK_STRENGTHS)[number]
+
 /**
  * Parse a raw frontmatter value into a MemoryType.
  * Invalid or missing values return undefined — legacy files without a
@@ -28,6 +44,47 @@ export type MemoryType = (typeof MEMORY_TYPES)[number]
 export function parseMemoryType(raw: unknown): MemoryType | undefined {
   if (typeof raw !== 'string') return undefined
   return MEMORY_TYPES.find(t => t === raw)
+}
+
+function parseFrontmatterList(raw: unknown): string[] {
+  if (typeof raw === 'string') {
+    return raw
+      .split(',')
+      .map(item => item.trim())
+      .filter(Boolean)
+  }
+  if (!Array.isArray(raw)) {
+    return []
+  }
+  return raw
+    .filter((item): item is string => typeof item === 'string')
+    .map(item => item.trim())
+    .filter(Boolean)
+}
+
+export function parseFeedbackPolarity(
+  raw: unknown,
+): FeedbackPolarity | undefined {
+  if (typeof raw !== 'string') return undefined
+  return FEEDBACK_POLARITIES.find(value => value === raw)
+}
+
+export function parseFeedbackAppliesTo(raw: unknown): FeedbackAppliesTo[] {
+  const values = parseFrontmatterList(raw)
+  return values.filter((value): value is FeedbackAppliesTo =>
+    FEEDBACK_APPLIES_TO.includes(value as FeedbackAppliesTo),
+  )
+}
+
+export function parseFeedbackStrength(
+  raw: unknown,
+): FeedbackStrength | undefined {
+  if (typeof raw !== 'string') return undefined
+  return FEEDBACK_STRENGTHS.find(value => value === raw)
+}
+
+export function parseFeedbackSignals(raw: unknown): string[] {
+  return parseFrontmatterList(raw)
 }
 
 /**
@@ -268,4 +325,26 @@ export const MEMORY_FRONTMATTER_EXAMPLE: readonly string[] = [
   '',
   '{{memory content — for feedback/project types, structure as: rule/fact, then **Why:** and **How to apply:** lines}}',
   '```',
+]
+
+export const FEEDBACK_FRONTMATTER_EXAMPLE: readonly string[] = [
+  '```yaml',
+  'polarity: {{prefer | avoid}}',
+  'applies_to:',
+  '  - {{planning | coding | testing | verification | communication | tool-use}}',
+  'strength: {{hard | soft}}',
+  'signals:',
+  '  - {{short keyword or phrase}}',
+  '```',
+]
+
+export const FEEDBACK_FRONTMATTER_GUIDANCE: readonly string[] = [
+  'For `feedback` memories, extend the generic frontmatter with this normalized schema:',
+  '',
+  ...FEEDBACK_FRONTMATTER_EXAMPLE,
+  '',
+  '- Use `polarity: prefer` for confirmed good approaches and `polarity: avoid` for corrections or things to stop doing.',
+  '- `applies_to` should name where the guidance kicks in. Use only: planning, coding, testing, verification, communication, tool-use.',
+  '- Use `strength: hard` for firm rules or policies; use `soft` for preferences and heuristics.',
+  '- `signals` should be short phrases likely to appear when this guidance is relevant.',
 ]
